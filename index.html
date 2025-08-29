@@ -156,7 +156,7 @@
     </div>
 
     <footer>
-        Dane na podstawie rejestru PESEL (stan na 24.02.2025). Źródło: dane.gov.pl PRÓBA 4
+        Dane na podstawie rejestru PESEL (stan na 24.02.2025). Źródło: dane.gov.pl PRÓBA 10
     </footer>
 
     <script>
@@ -224,50 +224,55 @@
 
         // Funkcja wyszukiwania
         async function searchSurname() {
-            await loadData(); // Upewnij się, że dane są załadowane
+            try {
+                console.log('Rozpoczęcie wyszukiwania...');
+                await loadData(); // Upewnij się, że dane są załadowane
 
-            const input = document.getElementById('surnameInput').value.trim().toUpperCase().replace(/\s+/g, '');
-            console.log('Wyszukiwane nazwisko:', input);
-            if (!input) {
-                alert('Wpisz nazwisko!');
-                return;
-            }
+                const input = document.getElementById('surnameInput').value.trim().toUpperCase().replace(/\s+/g, '');
+                console.log('Wyszukiwane nazwisko:', input);
+                if (!input) {
+                    alert('Wpisz nazwisko!');
+                    return;
+                }
 
-            const maleContent = document.getElementById('maleContent');
-            const femaleContent = document.getElementById('femaleContent');
-            const resultsDiv = document.getElementById('results');
+                const maleContent = document.getElementById('maleContent');
+                const femaleContent = document.getElementById('femaleContent');
+                const resultsDiv = document.getElementById('results');
 
-            maleContent.innerHTML = '';
-            femaleContent.innerHTML = '';
+                maleContent.innerHTML = '';
+                femaleContent.innerHTML = '';
 
-            if (!maleData || !femaleData) {
+                if (!maleData || !femaleData) {
+                    resultsDiv.style.display = 'block';
+                    maleContent.innerHTML = '<p class="no-results">Błąd ładowania danych męskich.</p>';
+                    femaleContent.innerHTML = '<p class="no-results">Błąd ładowania danych żeńskich.</p>';
+                    return;
+                }
+
+                const maleExists = maleData[input] && Object.values(maleData[input]).some(count => count > 0);
+                const femaleExists = femaleData[input] && Object.values(femaleData[input]).some(count => count > 0);
+
+                if (maleExists) {
+                    console.log('Znaleziono męskie dane dla:', input, maleData[input]);
+                    maleContent.innerHTML = createTable(maleData[input]);
+                } else {
+                    console.log('Nie znaleziono męskich danych dla:', input);
+                    maleContent.innerHTML = '<p class="no-results">Nie znaleziono nazwiska w rejestrze męskich.</p>';
+                }
+
+                if (femaleExists) {
+                    console.log('Znaleziono żeńskie dane dla:', input, femaleData[input]);
+                    femaleContent.innerHTML = createTable(femaleData[input]);
+                } else {
+                    console.log('Nie znaleziono żeńskich danych dla:', input);
+                    femaleContent.innerHTML = '<p class="no-results">Nie znaleziono nazwiska w rejestrze żeńskich.</p>';
+                }
+
                 resultsDiv.style.display = 'block';
-                maleContent.innerHTML = '<p class="no-results">Błąd ładowania danych męskich.</p>';
-                femaleContent.innerHTML = '<p class="no-results">Błąd ładowania danych żeńskich.</p>';
-                return;
+            } catch (error) {
+                console.error('Błąd podczas wyszukiwania:', error);
+                alert('Wystąpił błąd podczas wyszukiwania. Sprawdź konsolę.');
             }
-
-            // Sprawdzenie, czy nazwisko istnieje w danych
-            const maleExists = maleData[input] && Object.values(maleData[input]).some(count => count > 0);
-            const femaleExists = femaleData[input] && Object.values(femaleData[input]).some(count => count > 0);
-
-            if (maleExists) {
-                console.log('Znaleziono męskie dane dla:', input, maleData[input]);
-                maleContent.innerHTML = createTable(maleData[input]);
-            } else {
-                console.log('Nie znaleziono męskich danych dla:', input);
-                maleContent.innerHTML = '<p class="no-results">Nie znaleziono nazwiska w rejestrze męskich.</p>';
-            }
-
-            if (femaleExists) {
-                console.log('Znaleziono żeńskie dane dla:', input, femaleData[input]);
-                femaleContent.innerHTML = createTable(femaleData[input]);
-            } else {
-                console.log('Nie znaleziono żeńskich danych dla:', input);
-                femaleContent.innerHTML = '<p class="no-results">Nie znaleziono nazwiska w rejestrze żeńskich.</p>';
-            }
-
-            resultsDiv.style.display = 'block';
         }
 
         // Tworzenie tabeli z wynikami
@@ -289,8 +294,15 @@
         // Obsługa Entera
         document.getElementById('surnameInput').addEventListener('keypress', function(event) {
             if (event.key === 'Enter') {
+                console.log('Naciśnięto Enter');
                 searchSurname();
             }
+        });
+
+        // Obsługa kliknięcia przycisku
+        document.querySelector('button').addEventListener('click', function() {
+            console.log('Kliknięto przycisk Szukaj');
+            searchSurname();
         });
 
         // Ładowanie danych przy starcie strony
