@@ -156,7 +156,7 @@
     </div>
 
     <footer>
-        Dane na podstawie rejestru PESEL (stan na 24.02.2025). Źródło: dane.gov.pl PRÓBA 2
+        Dane na podstawie rejestru PESEL (stan na 24.02.2025). Źródło: dane.gov.pl PRÓBA 3
     </footer>
 
     <script>
@@ -164,27 +164,27 @@
         let femaleData = null;
         let voivodeships = [];
 
-        // Funkcja do parsowania CSV (obsługa różnych formatów)
+        // Funkcja do parsowania CSV (obsługa nagłówków i czyszczenie danych)
         function parseCSV(csvText) {
             const lines = csvText.trim().split('\n');
             const data = {};
             let hasHeaders = false;
 
             for (let i = 0; i < lines.length; i++) {
-                const parts = lines[i].split(';').map(part => part.trim());
+                const parts = lines[i].split(';').map(part => part.trim().replace(/\s+/g, ' '));
                 if (parts.length < 2) continue;
 
                 // Sprawdzenie, czy pierwsza linia to nagłówki
                 if (i === 0 && !/^\d+$/.test(parts[parts.length - 1])) {
                     hasHeaders = true;
-                    continue; // Pomiń nagłówki
+                    continue;
                 }
 
                 if (hasHeaders && i === 1) continue; // Pomiń drugą linię, jeśli są nagłówki
 
                 const woj = parts[0]; // Pierwsza kolumna to województwo
-                let surname = parts[1].toUpperCase(); // Druga kolumna to nazwisko
-                const count = parseInt(parts[2]) || 0; // Trzecia kolumna to liczba
+                let surname = parts[1].toUpperCase().replace(/\s+/g, ''); // Czyszczenie spacji w nazwisku
+                const count = parseInt(parts[2]) || 0;
 
                 if (!data[surname]) {
                     data[surname] = {};
@@ -195,7 +195,7 @@
                     voivodeships.push(woj);
                 }
             }
-            console.log('Parsowane dane:', data); // Debug
+            console.log('Parsowane dane:', data);
             return data;
         }
 
@@ -207,13 +207,13 @@
                 const maleResponse = await fetch('nazwiska_m.csv');
                 if (!maleResponse.ok) throw new Error('Plik nazwiska_m.csv nie został znaleziony.');
                 const maleText = await maleResponse.text();
-                console.log('Treść nazwiska_m.csv:', maleText.substring(0, 200)); // Debug pierwszych 200 znaków
+                console.log('Treść nazwiska_m.csv:', maleText.substring(0, 200));
                 maleData = parseCSV(maleText);
 
                 const femaleResponse = await fetch('nazwiska_k.csv');
                 if (!femaleResponse.ok) throw new Error('Plik nazwiska_k.csv nie został znaleziony.');
                 const femaleText = await femaleResponse.text();
-                console.log('Treść nazwiska_k.csv:', femaleText.substring(0, 200)); // Debug pierwszych 200 znaków
+                console.log('Treść nazwiska_k.csv:', femaleText.substring(0, 200));
                 femaleData = parseCSV(femaleText);
 
                 voivodeships.sort();
@@ -229,7 +229,8 @@
         async function searchSurname() {
             await loadData();
 
-            const input = document.getElementById('surnameInput').value.trim().toUpperCase();
+            const input = document.getElementById('surnameInput').value.trim().toUpperCase().replace(/\s+/g, '');
+            console.log('Wyszukiwane nazwisko:', input); // Debug
             if (!input) {
                 alert('Wpisz nazwisko!');
                 return;
@@ -250,14 +251,18 @@
             }
 
             if (maleData[input] && Object.keys(maleData[input]).length > 0) {
+                console.log('Znaleziono męskie dane dla:', input, maleData[input]); // Debug
                 maleContent.innerHTML = createTable(maleData[input]);
             } else {
+                console.log('Nie znaleziono męskich danych dla:', input); // Debug
                 maleContent.innerHTML = '<p class="no-results">Nie znaleziono nazwiska w rejestrze męskich.</p>';
             }
 
             if (femaleData[input] && Object.keys(femaleData[input]).length > 0) {
+                console.log('Znaleziono żeńskie dane dla:', input, femaleData[input]); // Debug
                 femaleContent.innerHTML = createTable(femaleData[input]);
             } else {
+                console.log('Nie znaleziono żeńskich danych dla:', input); // Debug
                 femaleContent.innerHTML = '<p class="no-results">Nie znaleziono nazwiska w rejestrze żeńskich.</p>';
             }
 
