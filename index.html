@@ -156,7 +156,7 @@
     </div>
 
     <footer>
-        Dane na podstawie rejestru PESEL (stan na 24.02.2025). Źródło: dane.gov.pl PRÓBA 1
+        Dane na podstawie rejestru PESEL (stan na 24.02.2025). Źródło: dane.gov.pl PRÓBA 2
     </footer>
 
     <script>
@@ -164,27 +164,38 @@
         let femaleData = null;
         let voivodeships = [];
 
-        // Funkcja do parsowania CSV (zakładam format: WOJEWODZTWO;NAZWISKO;LICZBA)
+        // Funkcja do parsowania CSV (obsługa różnych formatów)
         function parseCSV(csvText) {
             const lines = csvText.trim().split('\n');
             const data = {};
+            let hasHeaders = false;
 
             for (let i = 0; i < lines.length; i++) {
                 const parts = lines[i].split(';').map(part => part.trim());
-                if (parts.length < 3) continue;
-                const woj = parts[0];
-                const surname = parts[1].toUpperCase(); // Normalizacja nazwiska
-                const count = parseInt(parts[2]) || 0;
+                if (parts.length < 2) continue;
+
+                // Sprawdzenie, czy pierwsza linia to nagłówki
+                if (i === 0 && !/^\d+$/.test(parts[parts.length - 1])) {
+                    hasHeaders = true;
+                    continue; // Pomiń nagłówki
+                }
+
+                if (hasHeaders && i === 1) continue; // Pomiń drugą linię, jeśli są nagłówki
+
+                const woj = parts[0]; // Pierwsza kolumna to województwo
+                let surname = parts[1].toUpperCase(); // Druga kolumna to nazwisko
+                const count = parseInt(parts[2]) || 0; // Trzecia kolumna to liczba
 
                 if (!data[surname]) {
                     data[surname] = {};
                 }
-                data[surname][woj] = (data[surname][woj] || 0) + count; // Sumowanie, jeśli dane się powtarzają
+                data[surname][woj] = (data[surname][woj] || 0) + count;
 
                 if (!voivodeships.includes(woj)) {
                     voivodeships.push(woj);
                 }
             }
+            console.log('Parsowane dane:', data); // Debug
             return data;
         }
 
@@ -196,16 +207,18 @@
                 const maleResponse = await fetch('nazwiska_m.csv');
                 if (!maleResponse.ok) throw new Error('Plik nazwiska_m.csv nie został znaleziony.');
                 const maleText = await maleResponse.text();
+                console.log('Treść nazwiska_m.csv:', maleText.substring(0, 200)); // Debug pierwszych 200 znaków
                 maleData = parseCSV(maleText);
 
                 const femaleResponse = await fetch('nazwiska_k.csv');
                 if (!femaleResponse.ok) throw new Error('Plik nazwiska_k.csv nie został znaleziony.');
                 const femaleText = await femaleResponse.text();
+                console.log('Treść nazwiska_k.csv:', femaleText.substring(0, 200)); // Debug pierwszych 200 znaków
                 femaleData = parseCSV(femaleText);
 
                 voivodeships.sort();
-                console.log('Załadowane województwa:', voivodeships); // Debug
-                console.log('Przykładowe męskie dane:', Object.keys(maleData).slice(0, 5)); // Debug
+                console.log('Załadowane województwa:', voivodeships);
+                console.log('Przykładowe męskie dane:', Object.keys(maleData).slice(0, 5));
             } catch (error) {
                 console.error('Błąd ładowania danych:', error.message);
                 alert(`Błąd: ${error.message}. Upewnij się, że pliki CSV są w tym samym katalogu co HTML i są dostępne przez serwer.`);
@@ -258,7 +271,7 @@
             voivodeships.forEach(woj => {
                 const count = data[woj] || 0;
                 total += count;
-                if (count > 0) { // Wyświetlaj tylko województwa z danymi
+                if (count > 0) {
                     html += `<tr><td>${woj}</td><td>${count}</td></tr>`;
                 }
             });
@@ -278,5 +291,4 @@
         window.onload = loadData;
     </script>
 </body>
-
 </html>
